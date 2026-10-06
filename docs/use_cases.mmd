@@ -1,0 +1,90 @@
+flowchart TD
+    %% Use Case View for Online Banking System (Customer & Admin)
+
+    subgraph Authentication ["Authentication & Access Control"]
+        START([User Visits Portal]) --> LOGIN[/Enter Email & Password/]
+        LOGIN --> AUTH_CHECK{Credentials Valid?}
+        AUTH_CHECK -- No --> ATTEMPT_CHECK{Failed Attempts >= 5?}
+        ATTEMPT_CHECK -- Yes --> LOCK_ACC[Lock Account for 15 mins]
+        ATTEMPT_CHECK -- No --> INCR_FAIL[Increment Failed Counter & Show Error]
+        LOCK_ACC --> END_FAIL([Access Denied])
+        INCR_FAIL --> LOGIN
+
+        AUTH_CHECK -- Yes --> RESET_FAIL[Reset Failed Counter]
+        RESET_FAIL --> CHG_SESSION[Regenerate Session ID]
+        CHG_SESSION --> ROLE_DISPATCH{User Role?}
+    end
+
+    ROLE_DISPATCH -- CUSTOMER --> CUST_PORTAL["Customer Portal (/customer/dashboard)"]
+    ROLE_DISPATCH -- ADMIN --> ADMIN_PORTAL["Admin Console (/admin/dashboard)"]
+
+    %% Customer Use Cases
+    subgraph Customer_Use_Cases ["Customer Features"]
+        CUST_PORTAL --> UC_C1["View Account Overview & Balances"]
+        CUST_PORTAL --> UC_C2["Initiate Fund Transfer"]
+        CUST_PORTAL --> UC_C3["View Transaction History"]
+        CUST_PORTAL --> UC_C4["Apply for Personal Loan"]
+        CUST_PORTAL --> UC_C5["Open Fixed Deposit"]
+        CUST_PORTAL --> UC_C6["Manage Profile & Change Password"]
+
+        UC_C2 --> C2_INPUT[/Input To-Account, Amount, Remarks/]
+        C2_INPUT --> C2_CONFIRM{Confirm Transfer?}
+        C2_CONFIRM -- No --> CUST_PORTAL
+        C2_CONFIRM -- Yes --> C2_EXEC[Submit Transfer POST Request]
+        C2_EXEC --> C2_RESULT{Transfer Result?}
+        C2_RESULT -- Success --> C2_FLASH_OK[PRG: Flash Success Message]
+        C2_RESULT -- Failure --> C2_FLASH_ERR[PRG: Flash Error Message]
+
+        UC_C3 --> C3_FILTER[/Filter by Date, Type, Status, Search/]
+        C3_FILTER --> C3_PAGINATE[Display Paginated Results]
+
+        UC_C4 --> C4_INPUT[/Input Principal & Tenure/]
+        C4_INPUT --> C4_PREVIEW[Calculate & Preview Monthly EMI]
+        C4_PREVIEW --> C4_SUBMIT[Submit Loan Application PENDING]
+
+        UC_C5 --> C5_INPUT[/Select Source Account, Principal, Tenure/]
+        C5_INPUT --> C5_PREVIEW[Calculate Maturity Amount & Date]
+        C5_PREVIEW --> C5_DEBIT[Debit Account & Activate Fixed Deposit]
+
+        UC_C6 --> C6_PWD[/Verify Old Password & Enter New Password/]
+        C6_PWD --> C6_UPDATE[Update BCrypt Password Hash]
+    end
+
+    %% Admin Use Cases
+    subgraph Admin_Use_Cases ["Admin Capabilities"]
+        ADMIN_PORTAL --> UC_A1["User Management Table"]
+        ADMIN_PORTAL --> UC_A2["Global Transaction Surveillance"]
+        ADMIN_PORTAL --> UC_A3["System Settings Configuration"]
+        ADMIN_PORTAL --> UC_A4["Operational Metrics & Visualizations"]
+        ADMIN_PORTAL --> UC_A5["Loan Adjudication Queue"]
+        ADMIN_PORTAL --> UC_A6["Fraud Alerts Surveillance"]
+
+        UC_A1 --> A1_ACTIONS{Admin Action?}
+        A1_ACTIONS -- Create --> A1_NEW[/Enter User Details & Role/]
+        A1_NEW --> A1_CREATE_SAVE[Persist User & Show Flash Confirmation]
+        A1_ACTIONS -- Update --> A1_EDIT[/Edit User Status or Details/]
+        A1_EDIT --> A1_EDIT_SAVE[Update Record & Show Confirmation]
+        A1_ACTIONS -- Delete --> A1_CHK_BAL{Any Account Balance > 0?}
+        A1_CHK_BAL -- Yes --> A1_BLOCK[Block Deletion: Non-Zero Balance Error]
+        A1_CHK_BAL -- No --> A1_CONFIRM{Confirm Soft-Delete?}
+        A1_CONFIRM -- Yes --> A1_DEL_SAVE[Set Status DELETED & Show Confirmation]
+
+        UC_A2 --> A2_SEARCH[/Filter by Date, Account, Status, Amount/]
+        A2_SEARCH --> A2_REPORT[Export / View Detailed Audit Report]
+
+        UC_A3 --> A3_EDIT[/Edit Thresholds & Rates/]
+        A3_EDIT --> A3_CONFIRM{Confirm Settings Update?}
+        A3_CONFIRM -- Yes --> A3_SAVE[Persist to DB & Invalidate Concurrent Cache]
+
+        UC_A4 --> A4_DASH[View Real-Time Volume, Deposits, Ratios & Graphs]
+
+        UC_A5 --> A5_DECIDE{Adjudicate Loan?}
+        A5_DECIDE -- Approve --> A5_APP[Set APPROVED & Disburse Principal to Account]
+        A5_DECIDE -- Reject --> A5_REJ[Set REJECTED with Reason]
+
+        UC_A6 --> A6_REVIEW[/Inspect OPEN Alert Details/]
+        A6_REVIEW --> A6_RESOLVE[Mark REVIEWED or DISMISSED]
+    end
+
+    CUST_PORTAL --> LOGOUT([Logout: Invalidate Session])
+    ADMIN_PORTAL --> LOGOUT

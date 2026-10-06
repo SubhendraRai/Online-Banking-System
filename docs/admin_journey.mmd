@@ -1,0 +1,82 @@
+flowchart TD
+    %% End-to-End Administrator Journey Flowchart
+
+    START([Admin Arrives at /auth/login]) --> LOGIN_FORM[/Enter Admin Email & Password/]
+    LOGIN_FORM --> AUTH_GATE{Authenticate Admin Credentials}
+
+    AUTH_GATE -- Failure --> FLASH_ERR[Flash Invalid Credentials & Increment Counter]
+    FLASH_ERR --> LOGIN_FORM
+
+    AUTH_GATE -- Success & Role == ADMIN --> SESSION_ROT[Regenerate Session ID]
+    SESSION_ROT --> LOAD_ADMIN_DASH[Load Admin Console: /admin/dashboard]
+
+    LOAD_ADMIN_DASH --> ADMIN_NAV{Admin Navigation Module}
+
+    %% 1. User Management
+    ADMIN_NAV -->|User Management| USER_VIEW[Render User Management Table & Search]
+    USER_VIEW --> USER_ACTIONS{Select User Action}
+
+    USER_ACTIONS -->|Create User| NEW_USER_FORM[/Input Name, Email, Temp Password, Role, Phone, Address/]
+    NEW_USER_FORM --> SUBMIT_USER[Persist User & Accounts to DB]
+    SUBMIT_USER --> FLASH_CREATE_OK[Flash 'User created successfully' & PRG]
+    FLASH_CREATE_OK --> USER_VIEW
+
+    USER_ACTIONS -->|Edit User| EDIT_USER_FORM[/Modify Name, Phone, Role, Status/]
+    EDIT_USER_FORM --> CONFIRM_EDIT{Confirm User Updates?}
+    CONFIRM_EDIT -- Yes --> SAVE_USER_EDIT[Update DB & Flash Confirmation]
+    CONFIRM_EDIT -- No --> USER_VIEW
+    SAVE_USER_EDIT --> USER_VIEW
+
+    USER_ACTIONS -->|Soft Delete User| CHK_ACCOUNTS{Query Linked Accounts: Any Balance != 0?}
+    CHK_ACCOUNTS -- Non-Zero Balance Exists --> BLOCK_DEL[Flash Error: 'Cannot delete user with non-zero balance']
+    BLOCK_DEL --> USER_VIEW
+    CHK_ACCOUNTS -- All Balances Zero --> MODAL_DEL[Prompt Deletion Confirmation Dialog]
+    MODAL_DEL --> CONFIRM_DEL{Admin Confirms Deletion?}
+    CONFIRM_DEL -- Yes --> EXEC_DEL[Set User Status = 'DELETED']
+    EXEC_DEL --> FLASH_DEL_OK[Flash 'User successfully deleted' & PRG]
+    CONFIRM_DEL -- No --> USER_VIEW
+    FLASH_DEL_OK --> USER_VIEW
+
+    %% 2. Transaction Monitoring
+    ADMIN_NAV -->|Transaction Surveillance| TXN_MONITOR[Real-Time Transaction Stream]
+    TXN_MONITOR --> TXN_FILTER[/Filter by Date Range, Account No, Type, Status, High Amount/]
+    TXN_FILTER --> RENDER_TXNS[Display Filtered Results & Flagged Anomalies]
+    RENDER_TXNS --> EXPORT_REPORT[/Generate & Download Transaction Summary Report/]
+    EXPORT_REPORT --> TXN_MONITOR
+
+    %% 3. System Settings Configuration
+    ADMIN_NAV -->|System Settings| SETTINGS_PAGE[Display Current Key-Value Settings Table]
+    SETTINGS_PAGE --> EDIT_SETTINGS_FORM[/Edit Limits, Rates, Thresholds, Maintenance Mode/]
+    EDIT_SETTINGS_FORM --> CONFIRM_SETTING{Confirm Parameter Update?}
+    CONFIRM_SETTING -- Yes --> SAVE_SETTINGS[Update system_settings Table]
+    SAVE_SETTINGS --> CACHE_REFRESH[SettingsService: Atomically Refresh ConcurrentHashMap Cache]
+    CACHE_REFRESH --> FLASH_SETTING_OK[Flash 'System settings updated successfully']
+    CONFIRM_SETTING -- No --> SETTINGS_PAGE
+    FLASH_SETTING_OK --> SETTINGS_PAGE
+
+    %% 4. Loan Adjudication
+    ADMIN_NAV -->|Loan Applications| LOAN_QUEUE[Inspect PENDING Loan Applications]
+    LOAN_QUEUE --> LOAN_DECISION{Adjudicate Application}
+    LOAN_DECISION -- Approve --> APPROVE_LOAN[Update Status APPROVED & Auto-Disburse Principal via DB Txn]
+    LOAN_DECISION -- Reject --> REJECT_LOAN[Update Status REJECTED with Admin Remarks]
+    APPROVE_LOAN --> FLASH_LOAN_DEC[Flash 'Loan approved and disbursed' & PRG]
+    REJECT_LOAN --> FLASH_LOAN_DEC
+    FLASH_LOAN_DEC --> LOAN_QUEUE
+
+    %% 5. Fraud Alert Center
+    ADMIN_NAV -->|Fraud Alerts| FRAUD_QUEUE[View OPEN Fraud Alerts Queue]
+    FRAUD_QUEUE --> REVIEW_ALERT[/Inspect Violated Rule Code, Amount, Account History/]
+    REVIEW_ALERT --> ALERT_ACTION{Resolve Alert}
+    ALERT_ACTION -- Reviewed --> MARK_REV[Set Status = REVIEWED with Admin ID]
+    ALERT_ACTION -- Dismiss --> MARK_DIS[Set Status = DISMISSED with Admin ID]
+    MARK_REV --> FRAUD_QUEUE
+    MARK_DIS --> FRAUD_QUEUE
+
+    %% 6. Operational Metrics & Audit Log
+    ADMIN_NAV -->|Operational Metrics| METRICS_DASH[View Summary Cards: Total Deposits, Txn Volume, Active Users]
+    METRICS_DASH --> AUDIT_LOGS[Inspect System Audit Logs & Operational Ratios]
+    AUDIT_LOGS --> METRICS_DASH
+
+    %% 7. Logout
+    ADMIN_NAV -->|Logout| LOGOUT_ADMIN[Invalidate HTTP Session]
+    LOGOUT_ADMIN --> REDIR_LOGIN([Redirect to /auth/login with Flash Message])
