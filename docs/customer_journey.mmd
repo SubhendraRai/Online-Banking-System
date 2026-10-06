@@ -1,0 +1,73 @@
+flowchart TD
+    %% End-to-End Customer Journey Flowchart
+
+    START([Customer Arrives at /auth/login]) --> LOGIN_FORM[/Enter Registered Email & Password/]
+    LOGIN_FORM --> AUTH_GATE{Authenticate Credentials}
+
+    AUTH_GATE -- Invalid Credentials --> ATTEMPT_CNT{Failed Attempts >= 5?}
+    ATTEMPT_CNT -- Yes --> LOCKOUT[Set Status LOCKED for 15 mins]
+    ATTEMPT_CNT -- No --> FLASH_ERR[Increment Failed Counter & Flash Error Message]
+    LOCKOUT --> ACCESS_DENIED([Show Account Locked Error Notice])
+    FLASH_ERR --> LOGIN_FORM
+
+    AUTH_GATE -- Valid & Active --> SESSION_ROT[Regenerate Session ID: request.changeSessionId]
+    SESSION_ROT --> LOAD_DASH[Load Customer Dashboard: /customer/dashboard]
+
+    LOAD_DASH --> DASH_VIEW{Customer Action Selection}
+
+    %% 1. Overview
+    DASH_VIEW -->|View Portfolio| VIEW_PORTFOLIO[Display Accounts: Savings, Current Balances & Recent 5 Txns]
+    VIEW_PORTFOLIO --> DASH_VIEW
+
+    %% 2. Fund Transfer Flow
+    DASH_VIEW -->|Initiate Transfer| TRANSFER_FORM[/Input Beneficiary Acc, Amount, Remarks/]
+    TRANSFER_FORM --> PRE_VALIDATE{Client & Basic Validation}
+    PRE_VALIDATE -- Invalid --> TRANSFER_FORM
+    PRE_VALIDATE -- Valid --> CONFIRM_MODAL[Display Transfer Confirmation Screen]
+    CONFIRM_MODAL --> CONFIRM_CHOICE{Customer Confirms?}
+    CONFIRM_CHOICE -- Cancel --> DASH_VIEW
+    CONFIRM_CHOICE -- Submit POST --> EXEC_TRANSFER[Service: Concurrency Lock + DB Transaction]
+    EXEC_TRANSFER --> TRANSFER_RESULT{Transfer Result}
+    TRANSFER_RESULT -- Success --> FLASH_TXN_OK[Flash 'Transfer Successful' & PRG Redirect]
+    TRANSFER_RESULT -- Failure --> FLASH_TXN_ERR[Flash Business Error e.g. Insufficient Funds & PRG Redirect]
+    FLASH_TXN_OK --> LOAD_DASH
+    FLASH_TXN_ERR --> TRANSFER_FORM
+
+    %% 3. History Flow
+    DASH_VIEW -->|Transaction History| HIST_FILTER[/Select Date Range, Txn Type, Status, Search Query/]
+    HIST_FILTER --> EXEC_QUERY[Query DAO with Pagination]
+    EXEC_QUERY --> SHOW_STATEMENT[Render Paginated Statement Table]
+    SHOW_STATEMENT --> DASH_VIEW
+
+    %% 4. Banking Services: Loans
+    DASH_VIEW -->|Apply for Loan| LOAN_FORM[/Input Desired Principal & Tenure in Months/]
+    LOAN_FORM --> CALC_EMI[Compute Projected Monthly EMI using loan.interest_rate]
+    CALC_EMI --> SUBMIT_LOAN[Submit Loan Application: Status PENDING]
+    SUBMIT_LOAN --> FLASH_LOAN_OK[Flash 'Application Submitted' & PRG Redirect]
+    FLASH_LOAN_OK --> DASH_VIEW
+
+    %% 5. Banking Services: Fixed Deposit
+    DASH_VIEW -->|Open Fixed Deposit| FD_FORM[/Select Account, Principal Amount, Tenure/]
+    FD_FORM --> CALC_MATURITY[Compute Maturity Date & Returns using fd.interest_rate]
+    CALC_MATURITY --> CONFIRM_FD{Confirm FD Creation?}
+    CONFIRM_FD -- Yes --> EXEC_FD[Debit Account, Persist FD Record: Status ACTIVE]
+    EXEC_FD --> FLASH_FD_OK[Flash 'FD Opened Successfully' & PRG Redirect]
+    FLASH_FD_OK --> DASH_VIEW
+    CONFIRM_FD -- No --> DASH_VIEW
+
+    %% 6. Profile & Security
+    DASH_VIEW -->|Profile Management| PROF_FORM[/View Profile, Edit Phone or Address/]
+    PROF_FORM --> SAVE_PROF[Update User Profile & Flash Confirmation]
+    SAVE_PROF --> DASH_VIEW
+
+    DASH_VIEW -->|Change Password| PWD_FORM[/Input Current Password, New Password, Confirm New/]
+    PWD_FORM --> VALID_PWD{Current Password Valid & New PWD Meets Complexity?}
+    VALID_PWD -- No --> FLASH_PWD_ERR[Flash Password Error & Return to Form]
+    VALID_PWD -- Yes --> HASH_PWD[Generate Salted BCrypt Hash & Update DB]
+    HASH_PWD --> FLASH_PWD_OK[Flash 'Password Changed Successfully']
+    FLASH_PWD_ERR --> PWD_FORM
+    FLASH_PWD_OK --> DASH_VIEW
+
+    %% 7. Logout
+    DASH_VIEW -->|Logout| LOGOUT_ACTION[Invalidate HTTP Session]
+    LOGOUT_ACTION --> REDIR_LOGIN([Redirect to /auth/login with Flash Message])

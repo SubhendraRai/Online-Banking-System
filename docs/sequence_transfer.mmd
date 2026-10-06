@@ -1,0 +1,99 @@
+sequenceDiagram
+    autonumber
+    actor Customer as Customer (Browser)
+    participant Servlet as TransferServlet
+    participant Service as TransferService
+    participant LockMgr as LockManager
+    participant AccDao as AccountDao
+    participant TxnDao as TransactionDao
+    participant DB as MySQL Connection
+    participant FraudSvc as FraudDetectionService
+
+    Customer->>Servlet: POST /customer/transfer (fromAcc, toAcc, amount, remarks)
+    activate Servlet
+    Servlet->>Servlet: Validate Session & CSRF Token
+    Servlet->>Service: transfer(fromAcc, toAcc, amount, remarks)
+    activate Service
+
+    %% Lock ordering to prevent deadlock
+    Note over Service, LockMgr: Determine Ascending Order: acc1 = min(from, to), acc2 = max(from, to)
+    Service->>LockMgr: acquireLocks(acc1, acc2, 3000ms)
+    activate LockMgr
+    LockMgr->>LockMgr: acc1Lock.tryLock(timeout)
+    LockMgr->>LockMgr: acc2Lock.tryLock(timeout)
+    LockMgr-->>Service: Locks Acquired (true)
+    deactivate LockMgr
+
+    %% Transaction Begin
+    Service->>DB: setAutoCommit(false)
+    activate DB
+
+    %% Pessimistic Locking in Ascending Order
+    Service->>AccDao: findForUpdate(conn, acc1)
+    AccDao->>DB: SELECT * FROM accounts WHERE account_no = ? FOR UPDATE
+    DB-->>AccDao: Account acc1 Data
+    AccDao-->>Service: acc1 Object
+
+    Service->>AccDao: findForUpdate(conn, acc2)
+    AccDao->>DB: SELECT * FROM accounts WHERE account_no = ? FOR UPDATE
+    DB-->>AccDao: Account acc2 Data
+    AccDao-->>Service: acc2 Object
+
+    Service->>Service: Validate: Active, Limits, Balance + Overdraft >= Amount
+
+    alt Balance & Invariants Valid (Commit Path)
+        Service->>AccDao: debit(conn, fromAcc, amount)
+        AccDao->>DB: UPDATE accounts SET balance = balance - ? WHERE account_no = ?
+        DB-->>AccDao: Rows Updated (1)
+
+        Service->>AccDao: credit(conn, toAcc, amount)
+        AccDao->>DB: UPDATE accounts SET balance = balance + ? WHERE account_no = ?
+        DB-->>AccDao: Rows Updated (1)
+
+        Service->>TxnDao: record(conn, txn, SUCCESS)
+        TxnDao->>DB: INSERT INTO transactions (..., status='SUCCESS') VALUES (...)
+        DB-->>TxnDao: Generated txnId
+
+        Service->>DB: commit()
+        Note over Service, DB: ACID Transaction Committed Successfully
+
+        %% Cleanup in finally
+        Service->>DB: setAutoCommit(true) & close()
+        deactivate DB
+        Service->>LockMgr: releaseLocks(acc2, acc1)
+        Note over LockMgr: Both ReentrantLocks Released in reverse order
+
+        %% Asynchronous / Post-Commit Fraud Check (Never blocks transaction)
+        critical After-Commit Fraud Evaluation
+            Service->>FraudSvc: evaluateTransaction(txn, fromAcc)
+            activate FraudSvc
+            FraudSvc->>FraudSvc: Run Rules (HighAmount, Velocity, FirstPayee)
+            opt Rule Violation Detected
+                FraudSvc->>DB: INSERT INTO fraud_alerts (status='OPEN', ...)
+            end
+            deactivate FraudSvc
+        end
+
+        Service-->>Servlet: Transaction (SUCCESS)
+        Servlet->>Servlet: session.setAttribute("flash_success", "Transfer completed!")
+        Servlet-->>Customer: HTTP 303 Redirect to /customer/dashboard (PRG)
+
+    else Insufficient Funds / Rule Violation (Rollback Path)
+        Note over Service, DB: Business Error Detected: e.g., InsufficientFundsException
+        Service->>DB: rollback()
+        Note over Service, DB: Transaction Rolled Back - State Unchanged
+
+        %% Record Failure in Independent Transaction
+        Service->>TxnDao: recordFailedAttempt(fromAcc, toAcc, amount, reason)
+        TxnDao->>DB: INSERT INTO transactions (..., status='FAILED', remarks=reason)
+
+        %% Cleanup in finally
+        Service->>DB: setAutoCommit(true) & close()
+        Service->>LockMgr: releaseLocks(acc2, acc1)
+
+        Service-->>Servlet: throw InsufficientFundsException("Insufficient balance")
+        deactivate Service
+        Servlet->>Servlet: session.setAttribute("flash_error", ex.getMessage())
+        Servlet-->>Customer: HTTP 303 Redirect to /customer/transfer (PRG)
+        deactivate Servlet
+    end

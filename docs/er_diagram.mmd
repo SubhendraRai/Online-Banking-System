@@ -1,0 +1,104 @@
+erDiagram
+    %% Online Banking System Entity-Relationship Diagram (3NF, InnoDB)
+
+    users {
+        BIGINT user_id PK
+        VARCHAR full_name
+        VARCHAR email UK
+        VARCHAR phone
+        VARCHAR address
+        VARCHAR password_hash
+        ENUM role "CUSTOMER, ADMIN"
+        ENUM status "ACTIVE, LOCKED, DELETED"
+        INT failed_attempts
+        DATETIME locked_until
+        TIMESTAMP created_at
+    }
+
+    accounts {
+        VARCHAR account_no PK "12 digits"
+        BIGINT user_id FK
+        ENUM account_type "SAVINGS, CURRENT"
+        DECIMAL balance "15,2"
+        DECIMAL overdraft_limit "15,2"
+        ENUM status "ACTIVE, FROZEN, CLOSED"
+        TIMESTAMP opened_at
+    }
+
+    transactions {
+        BIGINT txn_id PK
+        VARCHAR from_account FK "nullable"
+        VARCHAR to_account FK "nullable"
+        ENUM txn_type "DEPOSIT, WITHDRAWAL, TRANSFER, INTEREST, LOAN_DISBURSAL, FD_OPEN, FD_MATURITY"
+        DECIMAL amount "15,2 (CHECK > 0)"
+        ENUM status "SUCCESS, FAILED"
+        VARCHAR remarks
+        TIMESTAMP created_at
+    }
+
+    loans {
+        BIGINT loan_id PK
+        BIGINT user_id FK
+        VARCHAR account_no FK
+        DECIMAL principal "15,2"
+        DECIMAL annual_rate "5,2"
+        INT tenure_months
+        DECIMAL emi "15,2"
+        ENUM status "PENDING, APPROVED, REJECTED"
+        TIMESTAMP applied_at
+        TIMESTAMP decided_at
+        BIGINT decided_by FK "nullable"
+    }
+
+    fixed_deposits {
+        BIGINT fd_id PK
+        VARCHAR account_no FK
+        DECIMAL principal "15,2"
+        DECIMAL annual_rate "5,2"
+        INT tenure_months
+        DATE start_date
+        DATE maturity_date
+        DECIMAL maturity_amount "15,2"
+        ENUM status "ACTIVE, MATURED, PRECLOSED"
+    }
+
+    fraud_alerts {
+        BIGINT alert_id PK
+        BIGINT txn_id FK
+        VARCHAR rule_code
+        VARCHAR reason
+        ENUM status "OPEN, REVIEWED, DISMISSED"
+        TIMESTAMP created_at
+        BIGINT reviewed_by FK "nullable"
+    }
+
+    system_settings {
+        VARCHAR setting_key PK
+        VARCHAR setting_value
+        VARCHAR description
+        BIGINT updated_by FK "nullable"
+        TIMESTAMP updated_at
+    }
+
+    audit_log {
+        BIGINT log_id PK
+        BIGINT user_id FK "nullable"
+        VARCHAR action
+        TEXT details
+        TIMESTAMP created_at
+    }
+
+    %% Entity Relationships
+    users ||--o{ accounts : "owns (1:N)"
+    users ||--o{ loans : "applies_for (1:N)"
+    users ||--o{ audit_log : "triggers (1:N)"
+    users ||--o{ loans : "decided_by (admin)"
+    users ||--o{ fraud_alerts : "reviewed_by (admin)"
+    users ||--o{ system_settings : "updated_by (admin)"
+
+    accounts ||--o{ transactions : "originates_from (1:N)"
+    accounts ||--o{ transactions : "receives_into (1:N)"
+    accounts ||--o{ loans : "disbursal_target (1:N)"
+    accounts ||--o{ fixed_deposits : "funds (1:N)"
+
+    transactions ||--o{ fraud_alerts : "triggers_evaluation (1:N)"

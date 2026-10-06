@@ -1,0 +1,312 @@
+classDiagram
+    %% Core Domain Object Model & Architecture Class Diagram
+
+    %% Interfaces
+    class InterestBearing {
+        <<interface>>
+        +calculateInterest() BigDecimal
+    }
+
+    class FraudRule {
+        <<interface>>
+        +evaluate(Transaction txn, Account source) Optional~FraudAlert~
+        +getRuleCode() String
+    }
+
+    class Repository~T, ID~ {
+        <<interface>>
+        +findById(ID id) Optional~T~
+        +findAll() List~T~
+        +save(T entity) T
+        +update(T entity) boolean
+        +deleteById(ID id) boolean
+    }
+
+    %% User Hierarchy
+    class User {
+        <<abstract>>
+        -Long userId
+        -String fullName
+        -String email
+        -String phone
+        -String address
+        -String passwordHash
+        -UserRole role
+        -UserStatus status
+        -int failedAttempts
+        -LocalDateTime lockedUntil
+        -LocalDateTime createdAt
+        +getUserId() Long
+        +getEmail() String
+        +getPasswordHash() String
+        +getRole() UserRole
+        +getStatus() UserStatus
+        +isLocked() boolean
+    }
+
+    class Customer {
+        -List~Account~ accounts
+        +getAccounts() List~Account~
+    }
+
+    class Admin {
+        -String employeeCode
+        +canManageSettings() boolean
+    }
+
+    User <|-- Customer
+    User <|-- Admin
+
+    %% Account Hierarchy
+    class Account {
+        <<abstract>>
+        -String accountNo
+        -Long userId
+        -AccountType accountType
+        -BigDecimal balance
+        -BigDecimal overdraftLimit
+        -AccountStatus status
+        -LocalDateTime openedAt
+        +getAccountNo() String
+        +getBalance() BigDecimal
+        +getOverdraftLimit() BigDecimal
+        +getStatus() AccountStatus
+        +deposit(BigDecimal amount)* void
+        +withdraw(BigDecimal amount)* void
+    }
+
+    class SavingsAccount {
+        -BigDecimal minimumBalance
+        -BigDecimal interestRate
+        +deposit(BigDecimal amount) void
+        +withdraw(BigDecimal amount) void
+        +calculateInterest() BigDecimal
+    }
+
+    class CurrentAccount {
+        +deposit(BigDecimal amount) void
+        +withdraw(BigDecimal amount) void
+    }
+
+    Account <|-- SavingsAccount
+    Account <|-- CurrentAccount
+    InterestBearing <|.. SavingsAccount
+
+    %% Domain Entities
+    class Transaction {
+        -Long txnId
+        -String fromAccount
+        -String toAccount
+        -TransactionType txnType
+        -BigDecimal amount
+        -TransactionStatus status
+        -String remarks
+        -LocalDateTime createdAt
+        +getTxnId() Long
+        +getAmount() BigDecimal
+        +getStatus() TransactionStatus
+    }
+
+    class Loan {
+        -Long loanId
+        -Long userId
+        -String accountNo
+        -BigDecimal principal
+        -BigDecimal annualRate
+        -int tenureMonths
+        -BigDecimal emi
+        -LoanStatus status
+        -LocalDateTime appliedAt
+        -LocalDateTime decidedAt
+        -Long decidedBy
+        +calculateEmi() BigDecimal
+    }
+
+    class FixedDeposit {
+        -Long fdId
+        -String accountNo
+        -BigDecimal principal
+        -BigDecimal annualRate
+        -int tenureMonths
+        -LocalDate startDate
+        -LocalDate maturityDate
+        -BigDecimal maturityAmount
+        -FdStatus status
+        +calculateInterest() BigDecimal
+        +calculateMaturityAmount() BigDecimal
+    }
+    InterestBearing <|.. FixedDeposit
+
+    class FraudAlert {
+        -Long alertId
+        -Long txnId
+        -String ruleCode
+        -String reason
+        -AlertStatus status
+        -LocalDateTime createdAt
+        -Long reviewedBy
+        +getAlertId() Long
+        +getStatus() AlertStatus
+    }
+
+    %% Fraud Rules Implementations
+    class HighAmountRule {
+        -BigDecimal threshold
+        +evaluate(Transaction txn, Account source) Optional~FraudAlert~
+        +getRuleCode() String
+    }
+    class VelocityRule {
+        -int maxCount
+        -int windowMinutes
+        +evaluate(Transaction txn, Account source) Optional~FraudAlert~
+        +getRuleCode() String
+    }
+    class FirstTimePayeeRule {
+        -BigDecimal threshold
+        +evaluate(Transaction txn, Account source) Optional~FraudAlert~
+        +getRuleCode() String
+    }
+    FraudRule <|.. HighAmountRule
+    FraudRule <|.. VelocityRule
+    FraudRule <|.. FirstTimePayeeRule
+
+    %% Exception Hierarchy
+    class Exception {
+        <<external>>
+    }
+    class RuntimeException {
+        <<external>>
+    }
+
+    class BankingException {
+        <<abstract>>
+        -String errorCode
+        +BankingException(String message)
+        +getErrorCode() String
+    }
+    Exception <|-- BankingException
+
+    class InsufficientFundsException {
+        +InsufficientFundsException(String msg)
+    }
+    class AccountNotFoundException {
+        +AccountNotFoundException(String msg)
+    }
+    class AccountInactiveException {
+        +AccountInactiveException(String msg)
+    }
+    class InvalidAmountException {
+        +InvalidAmountException(String msg)
+    }
+    class TransferLimitExceededException {
+        +TransferLimitExceededException(String msg)
+    }
+    class AuthenticationException {
+        +AuthenticationException(String msg)
+    }
+    class AccountLockedException {
+        +AccountLockedException(String msg)
+    }
+
+    BankingException <|-- InsufficientFundsException
+    BankingException <|-- AccountNotFoundException
+    BankingException <|-- AccountInactiveException
+    BankingException <|-- InvalidAmountException
+    BankingException <|-- TransferLimitExceededException
+    BankingException <|-- AuthenticationException
+    BankingException <|-- AccountLockedException
+
+    class DataAccessException {
+        +DataAccessException(String msg, Throwable cause)
+    }
+    RuntimeException <|-- DataAccessException
+
+    %% Repositories (DAOs)
+    class UserDao {
+        <<interface>>
+        +findByEmail(String email) Optional~User~
+    }
+    class AccountDao {
+        <<interface>>
+        +findForUpdate(Connection conn, String accNo) Optional~Account~
+        +updateBalance(Connection conn, String accNo, BigDecimal delta) void
+    }
+    class TransactionDao {
+        <<interface>>
+        +recordTransaction(Connection conn, Transaction txn) Transaction
+        +countRecentTransfers(String accNo, int minutes) int
+    }
+    class LoanDao {
+        <<interface>>
+        +findByStatus(LoanStatus status) List~Loan~
+    }
+    class FixedDepositDao {
+        <<interface>>
+        +findByAccount(String accNo) List~FixedDeposit~
+    }
+    class FraudAlertDao {
+        <<interface>>
+        +findByStatus(AlertStatus status) List~FraudAlert~
+    }
+
+    Repository <|-- UserDao
+    Repository <|-- AccountDao
+    Repository <|-- TransactionDao
+    Repository <|-- LoanDao
+    Repository <|-- FixedDepositDao
+    Repository <|-- FraudAlertDao
+
+    %% Service Tier & Concurrency
+    class LockManager {
+        -ConcurrentHashMap~String, ReentrantLock~ lockMap
+        +acquireLocks(String acc1, String acc2, long timeoutMs) boolean
+        +releaseLocks(String acc1, String acc2) void
+    }
+
+    class SettingsService {
+        -ConcurrentHashMap~String, String~ settingsCache
+        -SystemSettingDao settingDao
+        +getDecimal(String key, BigDecimal fallback) BigDecimal
+        +getInt(String key, int fallback) int
+        +updateSetting(String key, String value, Long adminId) void
+    }
+
+    class TransferService {
+        -AccountDao accountDao
+        -TransactionDao transactionDao
+        -LockManager lockManager
+        -SettingsService settingsService
+        -FraudDetectionService fraudService
+        +transfer(String fromAcc, String toAcc, BigDecimal amount, String remarks) Transaction
+    }
+
+    class FraudDetectionService {
+        -List~FraudRule~ rules
+        -FraudAlertDao alertDao
+        +evaluateTransaction(Transaction txn, Account source) void
+    }
+
+    class UserService {
+        -UserDao userDao
+        -AccountDao accountDao
+        +authenticate(String email, String password) User
+        +softDeleteUser(Long userId, Long adminId) boolean
+    }
+
+    class BankingServicesService {
+        -LoanDao loanDao
+        -FixedDepositDao fdDao
+        -AccountDao accountDao
+        -SettingsService settingsService
+        +applyLoan(Long userId, String accNo, BigDecimal principal, int tenure) Loan
+        +openFixedDeposit(String accNo, BigDecimal principal, int tenure) FixedDeposit
+        +adjudicateLoan(Long loanId, boolean approve, Long adminId) void
+    }
+
+    %% Service Relationships
+    TransferService ..> LockManager : uses
+    TransferService ..> AccountDao : uses
+    TransferService ..> TransactionDao : uses
+    TransferService ..> SettingsService : uses
+    TransferService ..> FraudDetectionService : triggers async
+    FraudDetectionService --> FraudRule : evaluates
