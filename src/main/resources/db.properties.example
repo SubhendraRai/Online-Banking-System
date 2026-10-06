@@ -1,0 +1,8 @@
+# Database Connection Configuration Example
+# Copy this file to 'src/main/resources/db.properties' (or place db.properties on classpath)
+# and update with your local MySQL credentials.
+
+db.url=jdbc:mysql://localhost:3306/bankdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+db.user=bank_app
+db.password=BankAppSecret123!
+db.driver=com.mysql.cj.jdbc.Driver
