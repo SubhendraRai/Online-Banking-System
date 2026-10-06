@@ -1,0 +1,25 @@
+# Maven build outputs
+target/
+*.war
+*.jar
+
+# IDE specific files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Sensitive database configuration (use db.properties.example as template)
+db.properties
+src/main/resources/db.properties
+src/test/resources/db.properties
+
+# Application and container logs
+*.log
+logs/
+
+# Operating system artifacts
+.DS_Store
+Thumbs.db
