@@ -9,20 +9,26 @@ import com.bank.util.Money;
 import com.bank.util.Page;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * In-memory test double for {@link TransactionDao}.
+ * In-memory test double for {@link TransactionDao} supporting transaction rollback staging.
  */
 public class FakeTransactionDao extends TransactionDao {
 
+    public static final Map<Connection, FakeTransactionDao> ACTIVE_DAOS = new ConcurrentHashMap<>();
+
     private final List<Transaction> storage = Collections.synchronizedList(new ArrayList<>());
+    private final Map<Connection, List<Transaction>> uncommitted = new ConcurrentHashMap<>();
     private final AtomicLong sequence = new AtomicLong(1);
 
     @Override
@@ -57,7 +63,20 @@ public class FakeTransactionDao extends TransactionDao {
 
     @Override
     public Transaction insert(Connection conn, Transaction entity) {
-        return insert(entity);
+        Transaction inserted = insert(entity);
+        if (conn != null) {
+            ACTIVE_DAOS.put(conn, this);
+            try {
+                if (!conn.getAutoCommit()) {
+                    synchronized (storage) {
+                        storage.remove(inserted);
+                    }
+                    uncommitted.computeIfAbsent(conn, k -> new ArrayList<>()).add(inserted);
+                }
+            } catch (SQLException ignored) {
+            }
+        }
+        return inserted;
     }
 
     @Override
@@ -117,8 +136,24 @@ public class FakeTransactionDao extends TransactionDao {
         }
     }
 
+    public void commit(Connection conn) {
+        if (conn != null) {
+            List<Transaction> txns = uncommitted.remove(conn);
+            if (txns != null) {
+                storage.addAll(txns);
+            }
+        }
+    }
+
+    public void rollback(Connection conn) {
+        if (conn != null) {
+            uncommitted.remove(conn);
+        }
+    }
+
     public void clear() {
         storage.clear();
+        uncommitted.clear();
         sequence.set(1);
     }
 }
