@@ -151,6 +151,14 @@ public abstract class Account {
         return balance;
     }
 
+    public String getFormattedBalance() {
+        return Money.formatInr(this.balance);
+    }
+
+    public String getFormattedAvailableBalance() {
+        return Money.formatInr(getAvailableBalance());
+    }
+
     public void setBalance(BigDecimal balance) {
         this.balance = Money.of(balance);
     }

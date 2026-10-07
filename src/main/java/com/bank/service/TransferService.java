@@ -3,6 +3,7 @@ package com.bank.service;
 import com.bank.concurrent.LockManager;
 import com.bank.dao.AccountDao;
 import com.bank.dao.TransactionDao;
+import com.bank.dao.UserDao;
 import com.bank.exception.AccountFrozenException;
 import com.bank.exception.AccountNotFoundException;
 import com.bank.exception.BankingException;
@@ -16,6 +17,7 @@ import com.bank.model.AccountStatus;
 import com.bank.model.Transaction;
 import com.bank.model.TxnStatus;
 import com.bank.model.TxnType;
+import com.bank.model.User;
 import com.bank.util.DBUtil;
 import com.bank.util.Money;
 import java.math.BigDecimal;
@@ -48,6 +50,7 @@ public class TransferService {
 
     private final AccountDao accountDao;
     private final TransactionDao transactionDao;
+    private final UserDao userDao;
     private final SettingsProvider settingsProvider;
     private final LockManager lockManager;
     private final FraudChecker fraudChecker;
@@ -61,7 +64,7 @@ public class TransferService {
      * Default constructor wiring production DAOs, configuration, and default lock manager.
      */
     public TransferService() {
-        this(new AccountDao(), new TransactionDao(), new DefaultSettingsProvider(),
+        this(new AccountDao(), new TransactionDao(), new UserDao(), new DefaultSettingsProvider(),
                 LockManager.getInstance(), new NoOpFraudChecker());
     }
 
@@ -73,11 +76,11 @@ public class TransferService {
      * @param settingsProvider configuration provider
      */
     public TransferService(AccountDao accountDao, TransactionDao transactionDao, SettingsProvider settingsProvider) {
-        this(accountDao, transactionDao, settingsProvider, LockManager.getInstance(), new NoOpFraudChecker());
+        this(accountDao, transactionDao, new UserDao(), settingsProvider, LockManager.getInstance(), new NoOpFraudChecker());
     }
 
     /**
-     * Full constructor supporting custom lock managers and fraud checkers.
+     * Constructor supporting custom lock managers and fraud checkers.
      *
      * @param accountDao account repository DAO
      * @param transactionDao transaction repository DAO
@@ -87,11 +90,48 @@ public class TransferService {
      */
     public TransferService(AccountDao accountDao, TransactionDao transactionDao, SettingsProvider settingsProvider,
                            LockManager lockManager, FraudChecker fraudChecker) {
+        this(accountDao, transactionDao, new UserDao(), settingsProvider, lockManager, fraudChecker);
+    }
+
+    /**
+     * Full constructor supporting custom user DAO, lock managers, and fraud checkers.
+     *
+     * @param accountDao account repository DAO
+     * @param transactionDao transaction repository DAO
+     * @param userDao user repository DAO
+     * @param settingsProvider configuration provider
+     * @param lockManager account lock coordinator
+     * @param fraudChecker post-commit fraud inspector
+     */
+    public TransferService(AccountDao accountDao, TransactionDao transactionDao, UserDao userDao,
+                           SettingsProvider settingsProvider, LockManager lockManager, FraudChecker fraudChecker) {
         this.accountDao = Objects.requireNonNull(accountDao, "accountDao cannot be null");
         this.transactionDao = Objects.requireNonNull(transactionDao, "transactionDao cannot be null");
+        this.userDao = Objects.requireNonNull(userDao, "userDao cannot be null");
         this.settingsProvider = Objects.requireNonNull(settingsProvider, "settingsProvider cannot be null");
         this.lockManager = Objects.requireNonNull(lockManager, "lockManager cannot be null");
         this.fraudChecker = (fraudChecker != null) ? fraudChecker : new NoOpFraudChecker();
+    }
+
+    /**
+     * Resolves the verified account holder's full name for a recipient account.
+     *
+     * @param toNo destination 12-digit account number
+     * @return recipient account owner's full name
+     * @throws BankingException if the account does not exist or is inactive/frozen
+     */
+    public String getRecipientName(String toNo) throws BankingException {
+        if (toNo == null || toNo.trim().isEmpty()) {
+            throw new ValidationException("toAccount", "Destination account number is required.");
+        }
+        String cleanAccNo = toNo.trim();
+        Account account = accountDao.findById(cleanAccNo)
+                .orElseThrow(() -> new AccountNotFoundException(cleanAccNo));
+        validateAccountOperational(account, "Destination");
+
+        return userDao.findById(account.getOwnerId())
+                .map(User::getFullName)
+                .orElse("Verified Customer");
     }
 
     /**

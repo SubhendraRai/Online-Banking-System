@@ -49,6 +49,10 @@ public class DashboardSummary implements Serializable {
         return totalBalance;
     }
 
+    public String getFormattedTotalBalance() {
+        return Money.formatInr(this.totalBalance);
+    }
+
     public List<Account> getAccounts() {
         return accounts;
     }
@@ -61,8 +65,16 @@ public class DashboardSummary implements Serializable {
         return moneyInThisMonth;
     }
 
+    public String getFormattedMoneyInThisMonth() {
+        return Money.formatInr(this.moneyInThisMonth);
+    }
+
     public BigDecimal getMoneyOutThisMonth() {
         return moneyOutThisMonth;
+    }
+
+    public String getFormattedMoneyOutThisMonth() {
+        return Money.formatInr(this.moneyOutThisMonth);
     }
 
     @Override

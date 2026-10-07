@@ -80,6 +80,61 @@ public final class Money {
     }
 
     /**
+     * Formats a monetary amount in Indian Rupees (INR) with Indian numbering grouping (e.g., "₹12,34,567.89").
+     *
+     * @param amount the monetary amount
+     * @return formatted INR string with rupee symbol
+     */
+    public static String formatInr(BigDecimal amount) {
+        if (amount == null) {
+            return "₹0.00";
+        }
+        boolean isNegative = amount.compareTo(BigDecimal.ZERO) < 0;
+        String grouped = formatIndianGrouping(amount.abs());
+        return (isNegative ? "-₹" : "₹") + grouped;
+    }
+
+    /**
+     * Formats a monetary amount with Indian numbering grouping without currency symbol (e.g., "12,34,567.89").
+     *
+     * @param amount the monetary amount
+     * @return formatted grouped string
+     */
+    public static String formatInrWithoutSymbol(BigDecimal amount) {
+        if (amount == null) {
+            return "0.00";
+        }
+        boolean isNegative = amount.compareTo(BigDecimal.ZERO) < 0;
+        String grouped = formatIndianGrouping(amount.abs());
+        return isNegative ? "-" + grouped : grouped;
+    }
+
+    private static String formatIndianGrouping(BigDecimal absAmount) {
+        BigDecimal scaled = absAmount.setScale(SCALE, ROUNDING_MODE);
+        String str = scaled.toPlainString();
+        int dotIndex = str.indexOf('.');
+        String intPart = (dotIndex >= 0) ? str.substring(0, dotIndex) : str;
+        String decPart = (dotIndex >= 0) ? str.substring(dotIndex + 1) : "00";
+
+        if (intPart.length() <= 3) {
+            return intPart + "." + decPart;
+        }
+
+        String lastThree = intPart.substring(intPart.length() - 3);
+        String remaining = intPart.substring(0, intPart.length() - 3);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < remaining.length(); i++) {
+            if (i > 0 && (remaining.length() - i) % 2 == 0) {
+                sb.append(",");
+            }
+            sb.append(remaining.charAt(i));
+        }
+        sb.append(",").append(lastThree).append(".").append(decPart);
+        return sb.toString();
+    }
+
+
+    /**
      * Checks if the amount is non-null and strictly greater than zero.
      *
      * @param amount the monetary amount

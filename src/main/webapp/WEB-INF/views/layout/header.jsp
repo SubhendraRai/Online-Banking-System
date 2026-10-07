@@ -25,6 +25,9 @@
                         </c:when>
                         <c:when test="${sessionScope.user.role == 'CUSTOMER'}">
                             <li><a href="<c:url value='/customer/dashboard'/>" class="nav-link">Dashboard</a></li>
+                            <li><a href="<c:url value='/customer/accounts'/>" class="nav-link">Accounts</a></li>
+                            <li><a href="<c:url value='/customer/deposit'/>" class="nav-link">Deposit</a></li>
+                            <li><a href="<c:url value='/customer/withdraw'/>" class="nav-link">Withdraw</a></li>
                             <li><a href="<c:url value='/customer/transfer'/>" class="nav-link">Transfers</a></li>
                             <li><a href="<c:url value='/customer/transactions'/>" class="nav-link">History</a></li>
                             <li>
