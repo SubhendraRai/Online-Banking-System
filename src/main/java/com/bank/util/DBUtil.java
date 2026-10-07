@@ -24,7 +24,8 @@ import org.slf4j.LoggerFactory;
 public final class DBUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DBUtil.class);
-    private static final String CONFIG_FILE = "db.properties";
+    private static final String DEFAULT_CONFIG_FILE = "db.properties";
+    private static String activeConfigFile = DEFAULT_CONFIG_FILE;
 
     private static final Properties PROPERTIES = new Properties();
     private static volatile DataSource pooledDataSource = null;
@@ -38,7 +39,7 @@ public final class DBUtil {
     }
 
     /**
-     * Loads database credentials from {@code db.properties} and initializes driver.
+     * Loads database credentials from the active configuration file and initializes driver.
      */
     private static void loadConfiguration() {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -46,19 +47,20 @@ public final class DBUtil {
             classLoader = DBUtil.class.getClassLoader();
         }
 
-        try (InputStream input = classLoader.getResourceAsStream(CONFIG_FILE)) {
+        try (InputStream input = classLoader.getResourceAsStream(activeConfigFile)) {
             if (input == null) {
                 LOGGER.warn("Configuration file '{}' not found on classpath. "
-                        + "Default credentials or programmatic DataSource must be configured.", CONFIG_FILE);
+                        + "Default credentials or programmatic DataSource must be configured.", activeConfigFile);
                 return;
             }
+            PROPERTIES.clear();
             PROPERTIES.load(input);
             String driverClass = PROPERTIES.getProperty("db.driver", "com.mysql.cj.jdbc.Driver");
             Class.forName(driverClass);
-            LOGGER.info("DBUtil initialized successfully using driver: {}", driverClass);
+            LOGGER.info("DBUtil initialized successfully using config '{}' and driver: {}", activeConfigFile, driverClass);
         } catch (IOException e) {
-            LOGGER.error("Failed to load database configuration from '{}'", CONFIG_FILE, e);
-            throw new DataAccessException("Failed to load " + CONFIG_FILE + " from classpath", e);
+            LOGGER.error("Failed to load database configuration from '{}'", activeConfigFile, e);
+            throw new DataAccessException("Failed to load " + activeConfigFile + " from classpath", e);
         } catch (ClassNotFoundException e) {
             LOGGER.error("MySQL JDBC driver class not found on classpath", e);
             throw new DataAccessException("MySQL JDBC driver not found on classpath", e);
@@ -85,7 +87,7 @@ public final class DBUtil {
         String password = PROPERTIES.getProperty("db.password");
 
         if (url == null || user == null) {
-            throw new SQLException("Database connection properties ('db.url', 'db.user') are not configured in " + CONFIG_FILE);
+            throw new SQLException("Database connection properties ('db.url', 'db.user') are not configured in " + activeConfigFile);
         }
 
         return DriverManager.getConnection(url, user, password);
@@ -112,9 +114,19 @@ public final class DBUtil {
     }
 
     /**
-     * Reloads configuration properties from classpath (useful for testing or dynamic environment switches).
+     * Reloads configuration properties from the default classpath properties file.
      */
     public static synchronized void reloadConfiguration() {
+        reloadConfiguration(DEFAULT_CONFIG_FILE);
+    }
+
+    /**
+     * Reloads configuration properties from a specified classpath configuration file.
+     *
+     * @param configFilename configuration resource file name (e.g. {@code "db-test.properties"})
+     */
+    public static synchronized void reloadConfiguration(String configFilename) {
+        activeConfigFile = (configFilename != null && !configFilename.isBlank()) ? configFilename : DEFAULT_CONFIG_FILE;
         loadConfiguration();
     }
 }
