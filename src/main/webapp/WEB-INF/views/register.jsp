@@ -57,7 +57,9 @@
                 <div class="form-group">
                     <label for="password" class="form-label">Password</label>
                     <input type="password" id="password" name="password" class="form-control"
-                           placeholder="At least 8 characters" required autocomplete="new-password">
+                           placeholder="At least 8 characters (letters + numbers)" required autocomplete="new-password"
+                           pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$">
+                    <span class="form-hint">Must contain at least 8 characters with letters and numbers.</span>
                 </div>
 
                 <div class="form-group">

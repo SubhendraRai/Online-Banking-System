@@ -196,9 +196,10 @@ target/bank.war
 
 | Role | Email Address | Password | Account Number | Initial Balance | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Customer** | `customer@bank.com` | `Customer123!` | `ACC-1001-0001` | ₹25,000.00 | Primary customer demo account |
-| **Customer** | `jane.doe@bank.com` | `Customer123!` | `ACC-1001-0002` | ₹15,000.00 | Secondary account for transfer demo |
-| **Administrator** | `admin@bank.com` | `Admin123!` | *N/A* | *N/A* | Administrative user & metrics portal |
+| **Customer** | `rahul.sharma@example.com` | `CustomerPass123!` | `ACC-1000-0001` | ₹25,000.00 | Primary retail customer demo account |
+| **Customer** | `priya.patel@example.com` | `CustomerPass123!` | `ACC-1000-0002` | ₹15,000.00 | Secondary account for transfer demo |
+| **Customer** | `amit.verma@example.com` | `CustomerPass123!` | `ACC-1000-0003` | ₹50,000.00 | High-balance customer account |
+| **Administrator** | `admin@bank.com` | `AdminPass123!` | *N/A* | *N/A* | Administrative user & metrics portal |
 
 ---
 
