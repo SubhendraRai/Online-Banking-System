@@ -33,3 +33,5 @@ c) Then give the exact commands to build, run and test, what I should see, and c
 d) Then ask me 3 short viva-style questions about the code you just wrote. Do not answer them until I reply.
 e) End with an updated CURRENT STATE paragraph (max 120 words) listing what exists now.
 f) Stop. Do not start the next phase until I say NEXT.
+g) Set Efforts to Max and Keep iterating and find best possible outcome, Use you creativity without losing the core functionality and INSTRUCTIONS.
+h) If any error occurs fix it then move ahead.

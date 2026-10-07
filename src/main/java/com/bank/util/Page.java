@@ -54,6 +54,15 @@ public final class Page<T> {
         return items;
     }
 
+    /**
+     * Alias for {@link #getItems()} matching JavaBean naming conventions.
+     *
+     * @return unmodifiable list of page elements
+     */
+    public List<T> getContent() {
+        return items;
+    }
+
     public int getPage() {
         return page;
     }

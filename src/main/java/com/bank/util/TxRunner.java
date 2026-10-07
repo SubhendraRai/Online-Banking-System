@@ -1,5 +1,6 @@
 package com.bank.util;
 
+import com.bank.exception.BankingException;
 import com.bank.exception.DataAccessException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -13,7 +14,7 @@ import org.slf4j.LoggerFactory;
  * <ul>
  *   <li>Acquires a database connection via {@link DBUtil#getConnection()}</li>
  *   <li>Saves current auto-commit status and disables auto-commit ({@code setAutoCommit(false)})</li>
- *   <li>Executes the transactional unit of work ({@link TxWork} or {@link TxAction})</li>
+ *   <li>Executes the transactional unit of work ({@link TxWork}, {@link TxAction}, or {@link TxBankingWork})</li>
  *   <li>Commits the transaction upon successful execution ({@code commit()})</li>
  *   <li>Rolls back the transaction upon any thrown exception ({@code rollback()})</li>
  *   <li>Always restores the original auto-commit state and closes the connection in {@code finally}</li>
@@ -26,6 +27,49 @@ public final class TxRunner {
 
     private TxRunner() {
         // Prevent instantiation of utility class
+    }
+
+    /**
+     * Executes functional transactional work that may throw a checked {@link BankingException},
+     * rethrowing business exceptions directly while wrapping SQLExceptions in {@link DataAccessException}.
+     *
+     * @param <T> result type
+     * @param work transactional work
+     * @return result of work
+     * @throws BankingException if a business domain error occurs during execution
+     * @throws DataAccessException if a database error occurs
+     */
+    public static <T> T execute(TxBankingWork<T> work) throws BankingException {
+        if (work == null) {
+            throw new IllegalArgumentException("TxBankingWork cannot be null");
+        }
+
+        Connection connection = null;
+        boolean originalAutoCommit = true;
+
+        try {
+            connection = DBUtil.getConnection();
+            originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+
+            T result = work.execute(connection);
+
+            connection.commit();
+            return result;
+        } catch (Throwable t) {
+            rollbackQuietly(connection, t);
+            if (t instanceof BankingException bankingEx) {
+                throw bankingEx;
+            } else if (t instanceof RuntimeException runtimeEx) {
+                throw runtimeEx;
+            } else if (t instanceof SQLException sqlEx) {
+                throw new DataAccessException("Transaction failed due to SQL error: " + sqlEx.getMessage(), sqlEx);
+            } else {
+                throw new DataAccessException("Transaction failed: " + t.getMessage(), t);
+            }
+        } finally {
+            closeAndRestore(connection, originalAutoCommit);
+        }
     }
 
     /**
