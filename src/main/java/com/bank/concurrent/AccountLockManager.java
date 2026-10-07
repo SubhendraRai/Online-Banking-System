@@ -1,129 +1,81 @@
 package com.bank.concurrent;
 
 import com.bank.exception.ServiceBusyException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Thread-safe account-level lock manager preventing concurrent race conditions and deadlocks.
+ * Backward-compatible facade delegating account locking operations to {@link LockManager}.
  * <p>
- * Implements Architectural Rule 4:
- * <ul>
- *   <li>Maintains exactly one fair {@link ReentrantLock} per bank account in a {@link ConcurrentHashMap}.</li>
- *   <li>Acquires multi-account locks strictly in ascending account-number order to eliminate circular waits.</li>
- *   <li>Employs {@link ReentrantLock#tryLock(long, TimeUnit)} with timeout to avoid unbounded thread starvation.</li>
- * </ul>
+ * Implements Architectural Rule 4 ensuring uniform lock allocation across the application.
  * </p>
  */
 public final class AccountLockManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AccountLockManager.class);
-    private static final ConcurrentHashMap<String, ReentrantLock> LOCK_MAP = new ConcurrentHashMap<>();
-    private static final long DEFAULT_TIMEOUT_MS = 5000L;
+    private static final LockManager DELEGATE = LockManager.getInstance();
 
     private AccountLockManager() {
-        // Prevent instantiation of utility class
+        // Prevent instantiation
     }
 
     /**
      * Retrieves or creates the fair {@link ReentrantLock} assigned to an account number.
      *
-     * @param accountNo unique 12-digit account number
+     * @param accountNo unique account number
      * @return dedicated lock instance
      */
     public static ReentrantLock getLock(String accountNo) {
-        if (accountNo == null) {
-            throw new IllegalArgumentException("Account number cannot be null for lock acquisition");
-        }
-        return LOCK_MAP.computeIfAbsent(accountNo, k -> new ReentrantLock(true));
+        return DELEGATE.getLock(accountNo);
     }
 
     /**
-     * Acquires an account lock with the default 5-second timeout.
+     * Acquires an account lock with the standard 5-second timeout.
      *
      * @param accountNo account number to lock
-     * @throws ServiceBusyException if lock acquisition times out or is interrupted
+     * @throws ServiceBusyException if lock acquisition times out
      */
     public static void acquireLock(String accountNo) throws ServiceBusyException {
-        acquireLock(accountNo, DEFAULT_TIMEOUT_MS);
+        DELEGATE.lock(accountNo);
     }
 
     /**
-     * Acquires an account lock with an explicit timeout.
-     *
-     * @param accountNo account number to lock
-     * @param timeoutMs timeout in milliseconds
-     * @throws ServiceBusyException if lock acquisition times out or is interrupted
-     */
-    public static void acquireLock(String accountNo, long timeoutMs) throws ServiceBusyException {
-        if (accountNo == null) return;
-        ReentrantLock lock = getLock(accountNo);
-        try {
-            boolean acquired = lock.tryLock(timeoutMs, TimeUnit.MILLISECONDS);
-            if (!acquired) {
-                LOGGER.warn("Timed out acquiring lock on account {} after {}ms", accountNo, timeoutMs);
-                throw new ServiceBusyException("Account " + accountNo + " is temporarily busy. Please retry.");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ServiceBusyException("Interrupted while acquiring lock for account " + accountNo, e);
-        }
-    }
-
-    /**
-     * Releases the account lock if held by the current calling thread.
+     * Releases the account lock if held by the calling thread.
      *
      * @param accountNo account number to unlock
      */
     public static void releaseLock(String accountNo) {
-        if (accountNo == null) return;
-        ReentrantLock lock = LOCK_MAP.get(accountNo);
-        if (lock != null && lock.isHeldByCurrentThread()) {
-            lock.unlock();
-        }
+        DELEGATE.unlock(accountNo);
     }
 
     /**
-     * Acquires locks for two accounts in strictly ascending alphabetical/numerical order,
-     * guaranteeing deadlock freedom.
+     * Acquires locks for two accounts in strictly ascending order.
      *
      * @param acc1 first account number
      * @param acc2 second account number
-     * @param timeoutMs lock acquisition timeout in milliseconds
-     * @throws ServiceBusyException if either lock cannot be acquired within the timeout
+     * @param timeoutMs unused legacy timeout parameter; delegated to standard LockManager
+     * @throws ServiceBusyException if lock acquisition times out
      */
     public static void acquireLocks(String acc1, String acc2, long timeoutMs) throws ServiceBusyException {
         if (acc1 == null || acc2 == null) {
-            throw new IllegalArgumentException("Account numbers cannot be null for dual-lock acquisition");
+            throw new IllegalArgumentException("Account numbers cannot be null for dual-lock acquisition.");
         }
         if (acc1.equals(acc2)) {
-            acquireLock(acc1, timeoutMs);
+            acquireLock(acc1);
             return;
         }
-
-        String first = acc1.compareTo(acc2) < 0 ? acc1 : acc2;
-        String second = acc1.compareTo(acc2) < 0 ? acc2 : acc1;
-
-        acquireLock(first, timeoutMs);
-        try {
-            acquireLock(second, timeoutMs);
-        } catch (ServiceBusyException e) {
-            releaseLock(first);
-            throw e;
-        }
+        List<String> sorted = (acc1.compareTo(acc2) < 0) ? List.of(acc1, acc2) : List.of(acc2, acc1);
+        DELEGATE.lockAll(sorted);
     }
 
     /**
-     * Releases locks for two accounts if held by the current thread.
+     * Releases locks for two accounts in reverse order.
      *
      * @param acc1 first account number
      * @param acc2 second account number
      */
     public static void releaseLocks(String acc1, String acc2) {
-        releaseLock(acc1);
-        releaseLock(acc2);
+        if (acc1 == null || acc2 == null) return;
+        List<String> sorted = (acc1.compareTo(acc2) < 0) ? List.of(acc1, acc2) : List.of(acc2, acc1);
+        DELEGATE.unlockAll(sorted);
     }
 }
