@@ -17,13 +17,15 @@
                 <div class="form-group">
                     <label for="fullName" class="form-label">Full Legal Name</label>
                     <input type="text" id="fullName" name="fullName" class="form-control"
-                           placeholder="e.g. John Doe" required autofocus>
+                           placeholder="e.g. John Doe" required autofocus
+                           value="<c:out value='${sessionScope.savedFullName}'/>">
                 </div>
 
                 <div class="form-group">
                     <label for="email" class="form-label">Email Address</label>
                     <input type="email" id="email" name="email" class="form-control"
-                           placeholder="john.doe@example.com" required>
+                           placeholder="john.doe@example.com" required
+                           value="<c:out value='${sessionScope.savedEmail}'/>">
                 </div>
             </div>
 
@@ -31,21 +33,24 @@
                 <div class="form-group">
                     <label for="phone" class="form-label">Phone Number</label>
                     <input type="tel" id="phone" name="phone" class="form-control"
-                           placeholder="10-digit telephone number" required>
+                           placeholder="10-digit telephone number" required
+                           value="<c:out value='${sessionScope.savedPhone}'/>">
                 </div>
 
                 <div class="form-group">
-                    <label for="initialDeposit" class="form-label">Initial Opening Deposit ($)</label>
+                    <label for="initialDeposit" class="form-label">Initial Opening Deposit (₹)</label>
                     <input type="number" step="0.01" min="0" id="initialDeposit" name="initialDeposit"
-                           class="form-control" placeholder="0.00 (optional)">
-                    <span class="form-hint">Default is $0.00; minimum balance rules apply per policy.</span>
+                           class="form-control" placeholder="0.00 (optional)"
+                           value="<c:out value='${sessionScope.savedDeposit}'/>">
+                    <span class="form-hint">Default is ₹0.00; minimum balance rules apply per policy (₹500.00).</span>
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="address" class="form-label">Residential Address</label>
                 <input type="text" id="address" name="address" class="form-control"
-                       placeholder="Street address, city, state, postal code" required>
+                       placeholder="Street address, city, state, postal code" required
+                       value="<c:out value='${sessionScope.savedAddress}'/>">
             </div>
 
             <div class="form-grid-2">

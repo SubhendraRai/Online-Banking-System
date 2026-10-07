@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
  * <ul>
  *   <li>Guarantees deadlock freedom by requiring callers to acquire locks in strictly ascending account-number order.</li>
  *   <li>Enforces a bounded 5-second acquisition timeout using {@link ReentrantLock#tryLock(long, TimeUnit)}.</li>
+ *   <li>Deduplicates and normalizes account numbers to prevent accidental multi-locking of identical accounts.</li>
  *   <li>Provides atomic all-or-nothing acquisition: if any subsequent lock cannot be acquired within the timeout,
  *       all locks already acquired during the invocation are immediately released in reverse order before
  *       throwing {@link ServiceBusyException}.</li>
@@ -90,12 +91,20 @@ public class LockManager {
             return;
         }
 
-        List<ReentrantLock> acquired = new ArrayList<>(sortedAccountNos.size());
+        List<String> normalized = sortedAccountNos.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
+
+        if (normalized.isEmpty()) {
+            return;
+        }
+
+        List<ReentrantLock> acquired = new ArrayList<>(normalized.size());
         try {
-            for (String accNo : sortedAccountNos) {
-                if (accNo == null || accNo.isBlank()) {
-                    continue;
-                }
+            for (String accNo : normalized) {
                 ReentrantLock lock = getLock(accNo);
                 boolean success = lock.tryLock(timeoutSeconds, TimeUnit.SECONDS);
                 if (!success) {
@@ -122,12 +131,16 @@ public class LockManager {
         if (sortedAccountNos == null || sortedAccountNos.isEmpty()) {
             return;
         }
-        for (int i = sortedAccountNos.size() - 1; i >= 0; i--) {
-            String accNo = sortedAccountNos.get(i);
-            if (accNo == null || accNo.isBlank()) {
-                continue;
-            }
-            ReentrantLock lock = locks.get(accNo.trim());
+        List<String> normalized = sortedAccountNos.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
+
+        for (int i = normalized.size() - 1; i >= 0; i--) {
+            String accNo = normalized.get(i);
+            ReentrantLock lock = locks.get(accNo);
             if (lock != null && lock.isHeldByCurrentThread()) {
                 lock.unlock();
             }

@@ -22,7 +22,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Customer registration servlet provisioning new user credentials and default accounts.
  * <p>
- * Implements strict Post/Redirect/Get flow with flash messaging and input validation.
+ * Implements strict Post/Redirect/Get flow with flash messaging, input validation,
+ * session rotation defense, and non-sensitive form state retention upon error.
  * </p>
  */
 @WebServlet(name = "RegisterServlet", urlPatterns = {"/register"})
@@ -64,6 +65,8 @@ public class RegisterServlet extends HttpServlet {
         String confirmPassword = request.getParameter("confirmPassword");
         String initialDepositStr = request.getParameter("initialDeposit");
 
+        preserveFormInputs(request, fullName, email, phone, address, initialDepositStr);
+
         if (password == null || !password.equals(confirmPassword)) {
             redirectWithError(request, response, "Passwords do not match. Please verify.");
             return;
@@ -76,7 +79,12 @@ public class RegisterServlet extends HttpServlet {
 
         try {
             Customer customer = authService.register(fullName, email, phone, address, password, initialDeposit);
+
+            // Rotate session ID on registration to guard against session fixation
+            request.changeSessionId();
+
             HttpSession session = request.getSession(true);
+            clearPreservedFormInputs(session);
             FlashMessage.success(session, "Account registered successfully! Please sign in with your email.");
             session.setAttribute("savedEmail", customer.getEmail());
             response.sendRedirect(request.getContextPath() + "/login");
@@ -105,6 +113,25 @@ public class RegisterServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             redirectWithError(req, resp, "Invalid initial deposit format. Please enter a valid number.");
             return null;
+        }
+    }
+
+    private void preserveFormInputs(HttpServletRequest req, String name, String email,
+                                    String phone, String address, String deposit) {
+        HttpSession session = req.getSession(true);
+        if (name != null) session.setAttribute("savedFullName", name.trim());
+        if (email != null) session.setAttribute("savedEmail", email.trim());
+        if (phone != null) session.setAttribute("savedPhone", phone.trim());
+        if (address != null) session.setAttribute("savedAddress", address.trim());
+        if (deposit != null) session.setAttribute("savedDeposit", deposit.trim());
+    }
+
+    private void clearPreservedFormInputs(HttpSession session) {
+        if (session != null) {
+            session.removeAttribute("savedFullName");
+            session.removeAttribute("savedPhone");
+            session.removeAttribute("savedAddress");
+            session.removeAttribute("savedDeposit");
         }
     }
 

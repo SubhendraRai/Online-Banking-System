@@ -15,10 +15,11 @@ import java.io.IOException;
 /**
  * Role-based authorization filter enforcing strict separation between Customer and Admin domains.
  * <p>
- * Requests to {@code /admin/*} mandate {@link com.bank.model.Role#ADMIN}; otherwise customer
- * users are redirected to their portal. Requests to {@code /customer/*} mandate
+ * Requests to {@code /admin} or {@code /admin/*} mandate {@link com.bank.model.Role#ADMIN}; otherwise customer
+ * users are redirected to their portal. Requests to {@code /customer} or {@code /customer/*} mandate
  * {@link com.bank.model.Role#CUSTOMER}; administrative users attempting customer operations
- * are redirected to the admin console.
+ * are redirected to the admin console. Exact matches for root portal paths seamlessly redirect
+ * to their corresponding dashboard views.
  * </p>
  */
 public class RoleFilter implements Filter {
@@ -48,6 +49,10 @@ public class RoleFilter implements Filter {
                 httpResponse.sendRedirect(httpRequest.getContextPath() + "/customer/dashboard");
                 return;
             }
+            if ("/admin".equals(path) || "/admin/".equals(path)) {
+                httpResponse.sendRedirect(httpRequest.getContextPath() + "/admin/dashboard");
+                return;
+            }
         } else if (path.startsWith("/customer")) {
             if (user == null) {
                 FlashMessage.error(httpRequest.getSession(true), "Please sign in to access your customer account.");
@@ -57,6 +62,10 @@ public class RoleFilter implements Filter {
             if (!user.isCustomer()) {
                 FlashMessage.error(httpRequest.getSession(), "Access denied: Customer privileges required.");
                 httpResponse.sendRedirect(httpRequest.getContextPath() + "/admin/dashboard");
+                return;
+            }
+            if ("/customer".equals(path) || "/customer/".equals(path)) {
+                httpResponse.sendRedirect(httpRequest.getContextPath() + "/customer/dashboard");
                 return;
             }
         }

@@ -59,11 +59,13 @@ public final class AccountLockManager {
         if (acc1 == null || acc2 == null) {
             throw new IllegalArgumentException("Account numbers cannot be null for dual-lock acquisition.");
         }
-        if (acc1.equals(acc2)) {
-            acquireLock(acc1);
+        String clean1 = acc1.trim();
+        String clean2 = acc2.trim();
+        if (clean1.equals(clean2)) {
+            acquireLock(clean1);
             return;
         }
-        List<String> sorted = (acc1.compareTo(acc2) < 0) ? List.of(acc1, acc2) : List.of(acc2, acc1);
+        List<String> sorted = (clean1.compareTo(clean2) < 0) ? List.of(clean1, clean2) : List.of(clean2, clean1);
         DELEGATE.lockAll(sorted);
     }
 
@@ -75,7 +77,9 @@ public final class AccountLockManager {
      */
     public static void releaseLocks(String acc1, String acc2) {
         if (acc1 == null || acc2 == null) return;
-        List<String> sorted = (acc1.compareTo(acc2) < 0) ? List.of(acc1, acc2) : List.of(acc2, acc1);
+        String clean1 = acc1.trim();
+        String clean2 = acc2.trim();
+        List<String> sorted = (clean1.compareTo(clean2) < 0) ? List.of(clean1, clean2) : List.of(clean2, clean1);
         DELEGATE.unlockAll(sorted);
     }
 }
