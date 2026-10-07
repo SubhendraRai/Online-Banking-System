@@ -129,4 +129,21 @@ public final class DBUtil {
         activeConfigFile = (configFilename != null && !configFilename.isBlank()) ? configFilename : DEFAULT_CONFIG_FILE;
         loadConfiguration();
     }
+
+    /**
+     * Safely resets any configured DataSource, closing it if AutoCloseable, and restores defaults.
+     */
+    public static synchronized void reset() {
+        if (pooledDataSource instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+                LOGGER.info("Successfully closed custom DataSource during DBUtil reset.");
+            } catch (Exception e) {
+                LOGGER.warn("Failed closing custom DataSource during DBUtil reset", e);
+            }
+        }
+        pooledDataSource = null;
+        activeConfigFile = DEFAULT_CONFIG_FILE;
+        loadConfiguration();
+    }
 }

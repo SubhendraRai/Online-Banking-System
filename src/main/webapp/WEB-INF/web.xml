@@ -37,7 +37,15 @@
     </filter>
     <filter-mapping>
         <filter-name>NoCacheFilter</filter-name>
+        <url-pattern>/customer</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>NoCacheFilter</filter-name>
         <url-pattern>/customer/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>NoCacheFilter</filter-name>
+        <url-pattern>/admin</url-pattern>
     </filter-mapping>
     <filter-mapping>
         <filter-name>NoCacheFilter</filter-name>
@@ -61,7 +69,15 @@
     </filter>
     <filter-mapping>
         <filter-name>RoleFilter</filter-name>
+        <url-pattern>/admin</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
         <url-pattern>/admin/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/customer</url-pattern>
     </filter-mapping>
     <filter-mapping>
         <filter-name>RoleFilter</filter-name>

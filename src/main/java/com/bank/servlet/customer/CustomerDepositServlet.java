@@ -8,6 +8,7 @@ import com.bank.service.AccountService;
 import com.bank.util.ErrorMessageResolver;
 import com.bank.util.FlashMessage;
 import com.bank.util.Money;
+import com.bank.util.Validator;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -77,7 +78,8 @@ public class CustomerDepositServlet extends HttpServlet {
             accountService.getUserAccount(accountNo.trim(), user.getId());
 
             BigDecimal amount = parseAmount(amountStr);
-            Transaction txn = accountService.deposit(accountNo.trim(), amount, remarks);
+            String cleanRemarks = Validator.validateRemarks(remarks);
+            Transaction txn = accountService.deposit(accountNo.trim(), amount, cleanRemarks);
 
             LOGGER.info("Deposit of {} into account {} succeeded for customer ID {}",
                     Money.formatInr(amount), accountNo, user.getId());

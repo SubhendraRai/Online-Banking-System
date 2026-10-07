@@ -35,7 +35,8 @@
                     <c:choose>
                         <c:when test="${not empty accounts}">
                             <c:forEach var="acc" items="${accounts}">
-                                <option value="<c:out value='${acc.accountNo}'/>">
+                                <option value="<c:out value='${acc.accountNo}'/>"
+                                    ${acc.accountNo == sessionScope.PENDING_TRANSFER_DRAFT.fromAccount ? 'selected' : ''}>
                                     <c:out value="${acc.accountNo}"/> (<c:out value="${acc.accountType}"/> - Available: <c:out value="${acc.formattedAvailableBalance}"/>)
                                 </option>
                             </c:forEach>
@@ -52,7 +53,8 @@
                 <label for="toAccount" class="form-label">Beneficiary Account Number</label>
                 <input type="text" name="toAccount" id="toAccount" class="form-control"
                        placeholder="12-digit Account Number (e.g., 100000000002)"
-                       pattern="[0-9]{12}" minlength="12" maxlength="12" required>
+                       pattern="[0-9]{12}" minlength="12" maxlength="12" required
+                       value="<c:out value='${sessionScope.PENDING_TRANSFER_DRAFT.toAccount}'/>">
                 <span class="form-hint">Recipient's verified name will be displayed on the next confirmation screen.</span>
             </div>
 
@@ -61,7 +63,8 @@
                 <div style="position:relative;">
                     <span style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); font-weight:700; color:var(--color-text-muted);">₹</span>
                     <input type="number" name="amount" id="amount" class="form-control" style="padding-left:2.25rem;"
-                           placeholder="0.00" min="0.01" step="0.01" required>
+                           placeholder="0.00" min="0.01" step="0.01" required
+                           value="<c:out value='${sessionScope.PENDING_TRANSFER_DRAFT.amount}'/>">
                 </div>
                 <span class="form-hint">Per-transfer limit: ₹50,000.00 &bull; Daily aggregate limit: ₹1,00,000.00</span>
             </div>
@@ -69,7 +72,8 @@
             <div class="form-group">
                 <label for="remarks" class="form-label">Payment Remarks / Memo (Optional)</label>
                 <input type="text" name="remarks" id="remarks" class="form-control"
-                       placeholder="e.g. Rent, Tuition fees, Invoice payment" maxlength="100">
+                       placeholder="e.g. Rent, Tuition fees, Invoice payment" maxlength="100"
+                       value="<c:out value='${sessionScope.PENDING_TRANSFER_DRAFT.remarks}'/>">
             </div>
 
             <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">

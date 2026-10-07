@@ -8,6 +8,7 @@ import com.bank.service.AccountService;
 import com.bank.util.ErrorMessageResolver;
 import com.bank.util.FlashMessage;
 import com.bank.util.Money;
+import com.bank.util.Validator;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -85,7 +86,8 @@ public class CustomerWithdrawServlet extends HttpServlet {
                         Money.formatInr(amount), Money.formatInr(account.getAvailableBalance())));
             }
 
-            Transaction txn = accountService.withdraw(accountNo.trim(), amount, remarks);
+            String cleanRemarks = Validator.validateRemarks(remarks);
+            Transaction txn = accountService.withdraw(accountNo.trim(), amount, cleanRemarks);
 
             LOGGER.info("Withdrawal of {} from account {} succeeded for customer ID {}",
                     Money.formatInr(amount), accountNo, user.getId());

@@ -8,11 +8,14 @@ import java.util.regex.Pattern;
 /**
  * Validation utility for sanitizing and verifying user inputs and form fields.
  * <p>
- * Enforces email syntax, international/domestic phone number structure, and
- * password security policy (minimum 8 characters, containing at least one letter and one digit).
+ * Enforces email syntax, international/domestic phone number structure,
+ * password security policy (minimum 8 characters, containing at least one letter and one digit),
+ * and transaction remarks length constraints (maximum 255 characters).
  * </p>
  */
 public final class Validator {
+
+    public static final int MAX_REMARKS_LENGTH = 255;
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
@@ -124,6 +127,25 @@ public final class Validator {
             String label = (fieldName != null && !fieldName.trim().isEmpty()) ? fieldName : "Field";
             throw new ValidationException(fieldName, label + " is required and cannot be blank.");
         }
+    }
+
+    /**
+     * Validates transaction remarks length against column storage bounds.
+     *
+     * @param remarks candidate remarks
+     * @return sanitized trimmed remarks string, or empty string if null/blank
+     * @throws ValidationException if remarks exceed maximum length
+     */
+    public static String validateRemarks(String remarks) throws ValidationException {
+        if (remarks == null || remarks.isBlank()) {
+            return "";
+        }
+        String clean = remarks.trim();
+        if (clean.length() > MAX_REMARKS_LENGTH) {
+            throw new ValidationException("remarks",
+                    "Remarks / memo cannot exceed " + MAX_REMARKS_LENGTH + " characters.");
+        }
+        return clean;
     }
 
     /**

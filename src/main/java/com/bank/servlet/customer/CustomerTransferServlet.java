@@ -11,6 +11,7 @@ import com.bank.service.TransferService;
 import com.bank.util.ErrorMessageResolver;
 import com.bank.util.FlashMessage;
 import com.bank.util.Money;
+import com.bank.util.Validator;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -67,7 +68,7 @@ public class CustomerTransferServlet extends HttpServlet {
             showReceiptPage(request, response, session);
         } else if ("cancel".equalsIgnoreCase(step)) {
             session.removeAttribute(TransferDraft.SESSION_KEY);
-            FlashMessage.info(session, "Fund transfer cancelled.");
+            FlashMessage.info(session, "Fund transfer cancelled. You may start a new transfer.");
             response.sendRedirect(request.getContextPath() + "/customer/transfer");
         } else {
             showTransferFormPage(request, response, user);
@@ -119,6 +120,7 @@ public class CustomerTransferServlet extends HttpServlet {
             return;
         }
 
+        session.removeAttribute(TransferReceipt.SESSION_KEY);
         request.setAttribute("receipt", receipt);
         request.getRequestDispatcher("/WEB-INF/views/customer/transfer-receipt.jsp").forward(request, response);
     }
@@ -128,7 +130,7 @@ public class CustomerTransferServlet extends HttpServlet {
         String fromAccount = request.getParameter("fromAccount");
         String toAccount = request.getParameter("toAccount");
         String amountStr = request.getParameter("amount");
-        String remarks = request.getParameter("remarks");
+        String rawRemarks = request.getParameter("remarks");
 
         try {
             if (fromAccount == null || fromAccount.isBlank()) {
@@ -151,10 +153,11 @@ public class CustomerTransferServlet extends HttpServlet {
             }
 
             String recipientName = transferService.getRecipientName(toAccount.trim());
+            String cleanRemarks = Validator.validateRemarks(rawRemarks);
 
             String formToken = UUID.randomUUID().toString();
             TransferDraft draft = new TransferDraft(
-                    formToken, fromAccount.trim(), toAccount.trim(), recipientName, amount, remarks);
+                    formToken, fromAccount.trim(), toAccount.trim(), recipientName, amount, cleanRemarks);
 
             session.setAttribute(TransferDraft.SESSION_KEY, draft);
             response.sendRedirect(request.getContextPath() + "/customer/transfer?step=confirm");

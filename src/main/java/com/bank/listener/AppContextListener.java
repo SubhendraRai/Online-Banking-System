@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
  * Servlet context lifecycle listener managing application bootstrapping and teardown.
  * <p>
  * At startup, verifies database connectivity and preloads system settings into application scope.
- * At shutdown, deregisters JDBC drivers and stops background threads to prevent memory leaks.
- * (A background interest/maintenance scheduler hook will be integrated here in a subsequent phase).
+ * At shutdown, deregisters JDBC drivers, stops background threads, and resets DB resources
+ * to eliminate memory and thread leaks on container reload.
  * </p>
  */
 @WebListener
@@ -57,9 +57,9 @@ public class AppContextListener implements ServletContextListener {
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         LOGGER.info("Shutting down Online Banking System web application context...");
-        // Background task scheduler cancellation hook will be wired here in future phase.
         cleanUpJdbcDrivers();
         cleanUpMySqlThreads();
+        DBUtil.reset();
         LOGGER.info("Application context destruction complete.");
     }
 

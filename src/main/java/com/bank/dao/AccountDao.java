@@ -227,12 +227,16 @@ public class AccountDao implements Repository<Account, String> {
 
     /**
      * Generates a new unique 12-digit account number within a transaction connection.
+     * <p>
+     * Uses pessimistic row locking ({@code FOR UPDATE}) and synchronized method execution
+     * to eliminate race conditions under concurrent account registrations.
+     * </p>
      *
      * @param conn active database connection
      * @return unique 12-digit string
      */
-    public String nextAccountNumber(Connection conn) {
-        String sql = "SELECT MAX(account_no) FROM accounts WHERE LENGTH(account_no) = 12";
+    public synchronized String nextAccountNumber(Connection conn) {
+        String sql = "SELECT MAX(account_no) FROM accounts WHERE LENGTH(account_no) = 12 FOR UPDATE";
         try (PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             if (rs.next()) {
