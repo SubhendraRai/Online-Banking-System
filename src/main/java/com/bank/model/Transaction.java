@@ -123,6 +123,10 @@ public final class Transaction {
         return amount;
     }
 
+    public String getFormattedAmount() {
+        return Money.formatInr(this.amount);
+    }
+
     public TxnStatus getStatus() {
         return status;
     }

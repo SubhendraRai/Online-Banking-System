@@ -159,6 +159,37 @@ public class AccountService {
     }
 
     /**
+     * Retrieves an account by its unique 12-digit account number.
+     *
+     * @param accountNo account number
+     * @return found {@link Account}
+     * @throws BankingException if the account does not exist or input is invalid
+     */
+    public Account getAccount(String accountNo) throws BankingException {
+        if (accountNo == null || accountNo.isBlank()) {
+            throw new ValidationException("accountNo", "Account number cannot be empty.");
+        }
+        return accountDao.findById(accountNo.trim())
+                .orElseThrow(() -> new AccountNotFoundException(accountNo.trim()));
+    }
+
+    /**
+     * Retrieves an account verifying that it is owned by the specified customer.
+     *
+     * @param accountNo account number
+     * @param userId user identifier
+     * @return found and ownership-verified {@link Account}
+     * @throws BankingException if account is missing or does not belong to the user
+     */
+    public Account getUserAccount(String accountNo, Long userId) throws BankingException {
+        Account account = getAccount(accountNo);
+        if (userId == null || !userId.equals(account.getOwnerId())) {
+            throw new ValidationException("accountNo", "Account does not belong to the authenticated user.");
+        }
+        return account;
+    }
+
+    /**
      * Executes a cash or credit deposit into a bank account.
      * <p>
      * Acquires an in-memory lock, begins a database transaction with {@code SELECT ... FOR UPDATE},
