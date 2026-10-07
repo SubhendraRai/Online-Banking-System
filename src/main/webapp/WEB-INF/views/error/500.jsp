@@ -5,62 +5,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>500 - System Error | Online Banking</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .error-card {
-            background: #ffffff;
-            border: 1px solid #fecaca;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            padding: 2.5rem;
-            max-width: 480px;
-            text-align: center;
-        }
-        h1 {
-            color: #dc2626;
-            font-size: 3rem;
-            margin: 0 0 0.5rem 0;
-        }
-        h2 {
-            font-size: 1.25rem;
-            margin: 0 0 1rem 0;
-            color: #475569;
-        }
-        p {
-            color: #64748b;
-            line-height: 1.5;
-            margin-bottom: 1.5rem;
-        }
-        a.btn {
-            display: inline-block;
-            background-color: #0284c7;
-            color: #ffffff;
-            padding: 0.6rem 1.2rem;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 500;
-        }
-        a.btn:hover {
-            background-color: #0369a1;
-        }
-    </style>
+    <title>500 - Server Error | Apex Banking System</title>
+    <link rel="stylesheet" href="<c:url value='/css/style.css'/>">
 </head>
 <body>
-    <div class="error-card">
-        <h1>500</h1>
-        <h2>Internal Server Error</h2>
-        <p>An unexpected error occurred while processing your request. Our technical operations team has logged this incident.</p>
-        <a href="<c:url value='/'/>" class="btn">Return Home</a>
+    <div class="auth-wrapper">
+        <div class="auth-card text-center">
+            <div class="auth-icon-badge" style="background:#fef2f2; color:#dc2626;">&#9888;</div>
+            <h1 class="auth-title" style="font-size:2.5rem; color:#dc2626;">500</h1>
+            <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:0.75rem;">Internal Server Error</h2>
+            <p style="color:var(--color-text-muted); margin-bottom:2rem;">
+                An unexpected system exception occurred while processing your transaction.
+                Our operations team has logged this event. Please try again shortly.
+            </p>
+            <a href="<c:url value='/'/>" class="btn btn-primary btn-block">Return to Apex Banking</a>
+        </div>
     </div>
 </body>
 </html>

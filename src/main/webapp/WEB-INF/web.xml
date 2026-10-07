@@ -7,6 +7,67 @@
 
     <display-name>Online Banking System</display-name>
 
+    <!-- Application Lifecycle Listener -->
+    <listener>
+        <listener-class>com.bank.listener.AppContextListener</listener-class>
+    </listener>
+
+    <!-- ======================================================== -->
+    <!-- FILTER PIPELINE (Execution order determined by mapping)   -->
+    <!-- 1. EncodingFilter   - UTF-8 on all requests & responses  -->
+    <!-- 2. NoCacheFilter    - Cache prevention on private routes  -->
+    <!-- 3. AuthFilter       - Authentication gatekeeper           -->
+    <!-- 4. RoleFilter       - Role-based authorization            -->
+    <!-- ======================================================== -->
+
+    <!-- 1. EncodingFilter -->
+    <filter>
+        <filter-name>EncodingFilter</filter-name>
+        <filter-class>com.bank.filter.EncodingFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>EncodingFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <!-- 2. NoCacheFilter -->
+    <filter>
+        <filter-name>NoCacheFilter</filter-name>
+        <filter-class>com.bank.filter.NoCacheFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>NoCacheFilter</filter-name>
+        <url-pattern>/customer/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>NoCacheFilter</filter-name>
+        <url-pattern>/admin/*</url-pattern>
+    </filter-mapping>
+
+    <!-- 3. AuthFilter -->
+    <filter>
+        <filter-name>AuthFilter</filter-name>
+        <filter-class>com.bank.filter.AuthFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <!-- 4. RoleFilter -->
+    <filter>
+        <filter-name>RoleFilter</filter-name>
+        <filter-class>com.bank.filter.RoleFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/admin/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/customer/*</url-pattern>
+    </filter-mapping>
+
     <!-- Welcome File -->
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>
@@ -17,6 +78,7 @@
         <session-timeout>15</session-timeout>
         <cookie-config>
             <http-only>true</http-only>
+            <same-site>Lax</same-site>
         </cookie-config>
         <tracking-mode>COOKIE</tracking-mode>
     </session-config>
