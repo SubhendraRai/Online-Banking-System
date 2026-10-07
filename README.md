@@ -153,14 +153,18 @@ Browser (HTTP/HTTPS)
 
 ### Step 3: Build & Package the Application
 
-Run Maven clean package to execute the automated test suite and produce the deployable `.war` archive:
+Run Maven clean package to execute the automated test suite and produce the deployable `.war` archive (using either installed Maven or the included Maven Wrapper `./mvnw`):
 ```bash
+# Using Maven Wrapper (No pre-installed Maven required)
+./mvnw clean package
+
+# Or using installed Maven
 mvn clean package
 ```
 
 Upon completion, the deployable WAR is generated at:
 ```text
-target/online-banking-system.war
+target/bank.war
 ```
 
 ---
@@ -198,21 +202,28 @@ target/online-banking-system.war
 
 ---
 
-## 7. Running Tests & Automated Demos
+## 7. Running Tests & Documentation Index
+
+### Technical Documentation & Architecture Index
+For full architectural diagrams (Mermaid), requirements, decision records, and test reports, see the [Technical Documentation Index](docs/README.md).
 
 ### Execute All Unit & Concurrency Tests
 ```bash
+# Using Maven Wrapper
+./mvnw test
+
+# Or using installed Maven
 mvn test
 ```
 
 ### Run Integration Tests (Requires Active MySQL)
 To run end-to-end integration tests against your local test database (`bankdb_test`):
 ```bash
-mvn test -Dtest=*IntegrationTest
+./mvnw test -Dtest=*IntegrationTest
 ```
 
 ### Verification Checklist
-A comprehensive 35-case manual verification checklist is maintained at [`docs/test-report.md`](docs/test-report.md).
+A comprehensive 35-case manual verification checklist is maintained at [`docs/test-report.md`](docs/test-report.md) and indexed in [`docs/README.md`](docs/README.md).
 
 ---
 
