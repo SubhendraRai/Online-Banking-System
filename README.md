@@ -10,7 +10,7 @@ An enterprise-grade, concurrency-safe, dual-portal Online Banking Web Applicatio
 
 ---
 
-## 1. Project Summary
+## 1. Project Summary.
 
 The **Online Banking System** is designed to demonstrate mission-critical banking operations with strict academic and commercial software engineering principles. It features zero reliance on heavy magic frameworks (such as Spring or Hibernate), providing pure architectural transparency across layered components:
 - **Presentation Layer:** Jakarta Servlets and JSPs styled with a responsive design system, completely protected against XSS using JSTL `<c:out>` and CSRF/double-submit using the Post/Redirect/Get (PRG) pattern with session flash messaging.
@@ -20,7 +20,7 @@ The **Online Banking System** is designed to demonstrate mission-critical bankin
 
 ---
 
-## 2. Features
+## 2. Features.
 
 ### Customer Portal
 - **Dashboard & Account Overview:** Real-time checking and savings account balances, masked account numbers, and recent transaction timeline.
@@ -30,7 +30,7 @@ The **Online Banking System** is designed to demonstrate mission-critical bankin
 - **Banking Services:** Loan calculator and investment service modules.
 - **Profile Management:** View and update personal profile, email, contact information, and security password with BCrypt verification.
 
-### Administrator Portal
+### Administrator Portal.
 - **Operational Metrics & Analytics:** Real-time KPI summaries including total deposits, total accounts, active users, and transaction volume aggregations.
 - **User Management (CRUD):** Searchable user directory, role assignments (Customer, Admin), status toggles (Active, Suspended), and profile updates.
 - **Live Transaction Monitoring:** Global transaction audit logs with sorting and detailed transaction trace inspection.
@@ -54,7 +54,7 @@ The **Online Banking System** is designed to demonstrate mission-critical bankin
 
 ---
 
-## 4. Architectural Design & Hard Rules
+## 4. Architectural Design & Hard Rules.
 
 ```
 Browser (HTTP/HTTPS)
