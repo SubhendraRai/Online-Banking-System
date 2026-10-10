@@ -1,4 +1,4 @@
-# Online Banking System.
+# Online Banking System
 
 [![Java](https://img.shields.io/badge/Java-17%20LTS-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Jakarta EE](https://img.shields.io/badge/Jakarta%20EE-10%20(Tomcat%2010.1)-F3702A?style=for-the-badge&logo=apachetomcat&logoColor=white)](https://tomcat.apache.org/)
